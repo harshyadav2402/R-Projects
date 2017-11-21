@@ -1,0 +1,61 @@
+fire <- read.csv("C:/Users/Harsh Yadav/Downloads/forestfires.csv", header=TRUE, stringsAsFactors=FALSE)
+str(fire)
+sum(is.na(fire))
+
+library(ggplot2)
+
+boxplot(fire$DMC, fire$DC)
+plot(fire[,-c(1,2,3,4)])
+
+fire$month <- as.factor(fire$month)
+levels(fire$month)
+mycolors = c('yellow','yellow','blue','blue','blue','red','red','yellow','red','blue','blue','yellow')
+
+with(fire,legend('topleft',legend=levels(month),col=mycolors,pch=1,title='Months'))
+title('Wind and Temperatute with Month')
+
+X1 <- as.factor(fire$X)
+ggplot(fire, aes(x=area,y=wind,group=interaction(Y))) +
+  geom_line(aes(color=Y)) 
+
+plot(fire$area, fire$wind, pch = 16, col = c('cornflowerblue', 'springgreen', 'red','yellow')[fire$Y])
+
+ggplot(fire, aes(x=fire$DC)) + geom_histogram()
+ggplot(fire, aes(month)) + geom_line(aes(y = FFMC, colour = "FFMC")) + geom_line(aes(y = ISI, colour = "ISI"))
+ggplot(fire, aes(x=month, y=temp, colour=wind)) + geom_line()
+ggplot(fire, aes(x=area, y=temp, colour=wind)) + geom_line()
+ggplot(fire, aes(x=month, y=temp, colour=rain)) + geom_line()
+
+library(GGally)
+ggcorr(fire[,3:13], palette = "RdBu", label = TRUE)
+
+library(plyr)
+fire$category <- cut(fire$area, breaks=c(-10, 10, 50, 125, Inf), labels=c(1,2,3,4))
+fire$day <- revalue(fire$day, c("sun"=1, "mon"=2, "tue"=3, "wed"=4, "thu"=5, "fri"=6, "sat"=7))
+fire$month <- revalue(fire$month, c("jan"=1, "feb"=2, "mar"=3, "apr"=4, "may"=5, "jun"=6, "jul"=7, "aug"=8, "sep"=9, "oct"=10, "nov"=11, "dec"=12))
+
+library(randomForest)
+set.seed(415)
+
+data <- sample(2,nrow(fire),replace=TRUE,prob=c(0.7,0.3))
+trainData <- fire[data==1,]
+testData <- fire[data==2,]
+
+
+trainData$category <- factor(trainData$category)
+fit <- randomForest(category ~ X + Y + FFMC + day + month + DMC + DC + ISI + temp + RH + wind + rain, data=trainData, importance=TRUE, ntree=200)
+table(predict(fit),trainData$category)
+plot(fit)
+importance(fit)
+varImpPlot(fit)
+
+
+Pred<-predict(fit,newdata=testData)
+a <- table(Pred, testData$category)
+#plot(margin(fit,testData$category))
+
+library(e1071)
+library(caret)
+
+f.conf <- confusionMatrix(a)
+print(f.conf)
