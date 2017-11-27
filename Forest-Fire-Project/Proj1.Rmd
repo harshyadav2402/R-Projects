@@ -1,7 +1,10 @@
 ---
-title: "Proj"
-output: pdf_document
+title: "Business Analytics Project- Forest Fire Data"
+author: "Harsh Yadav (hy1217), Nitish Dabas(nd1292), Kush Shah ()"
+date: "11/22/2017"
+output: rmarkdown::github_document
 ---
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -10,7 +13,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 fire <- read.csv("C:/Users/Harsh Yadav/Downloads/forestfires.csv", header=TRUE, stringsAsFactors=FALSE)
 str(fire)
-sum(is.na(fire))
 ```
 
 ##The data has been stored in a dataframe named fire and the str function shows that there are 517 observations and 13 variables in our dataset. The description of each column is as follows:
@@ -40,6 +42,13 @@ summary(fire)
 ```
 
 ##The above function represents the summary of each of the feature of our dataset representing their min, max, quartile values.
+
+```{r}
+library(GGally)
+ggcorr(fire[,3:13], palette = "RdBu", label = TRUE)
+```
+
+##The correlation represented above shows the relationship between different feartures of our dataset. We can see that DC and DMC values are most strongly positively correlated to each other and temperature is strongly negatively correlated to RH value.
 
 ##Fine Fuel Moisture Code - FFMC
 ##This is a numerical rating of the moisture content of surface litter and other cured fine fuels. It shows the relative ease of ignition and flammability of fine fuels. The moisture content of fine fuels is very sensitive to the weather. Even a day of rain, or of fine and windy weather, will significantly affect the FFMC rating. The system uses a time lag of two-thirds of a day to accurately measure the moisture content in fine fuels. The FFMC rating is on a scale of 0 to 99. Any figure above 70 is high, and above 90 is extreme.
@@ -195,6 +204,87 @@ ggplot(fire_new, aes(x=month, y=temp, fill=area_Cat))+
 ```
 
 #This graph shows that most of the extreme forest fire occur during occur during the month of June, July, August and September when the temperature is high, so it facilitates occurance of fire.
+
+#Predictive Analysis
+
+##Random Forest Algorithm
+
+```{r}
+fire_rf <- read.csv("C:/Users/Harsh Yadav/Downloads/forestfires.csv", header=TRUE, stringsAsFactors=FALSE)
+```
+
+##The data has been loaded into a dataframe named fire_rf for our predictive analysis using the random forest algorithm.
+
+```{r}
+library(randomForest)
+
+fire_rf$day <- factor(fire_rf$day)
+fire_rf$month <- factor(fire_rf$month)
+
+set.seed(415)
+
+data <- sample(2,nrow(fire_rf),replace=TRUE,prob=c(0.7,0.3))
+trainData <- fire_rf[data==1,]
+testData <- fire_rf[data==2,]
+```
+
+#The random forest library had been loaded and the set.seed randomiser has been set to 415. Then the source dataframe fire_rf has been divided into 2 dataframes namely trainData and testData in 0.7:0.3 ratio for our predictive analysis. The day and month columns have been converted as factors as they contain string values, so to perform random forest analysis on our data, we have to convert these string values to factors.
+
+```{r}
+rf_fit <- randomForest(area ~., data=trainData, importance=TRUE, ntree=200)
+```
+
+##Random forest modelling has been performed on our training data using 200 trees and the model has been stored in rf_fit.
+
+```{r}
+plot(rf_fit)
+```
+
+```{r}
+importance(rf_fit)
+```
+
+```{r}
+varImpPlot(rf_fit)
+```
+
+```{r}
+Pred<-predict(rf_fit,testData)
+#a <- table(Pred, testData$area)
+
+```
+
+
+```{r}
+library(e1071)
+library(caret)
+#a <- table(Pred, testData$area)
+#Act <- as.data.frame(testData$area)
+#Pred1 <- as.data.frame(Pred)
+#a1 <- table(str(Pred), str(testData$area))
+#a1
+#confusionMatrix(str(Pred), str(testData$area))
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
