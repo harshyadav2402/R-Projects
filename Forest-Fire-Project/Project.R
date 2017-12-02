@@ -1,4 +1,4 @@
-fire <- read.csv("C:/Users/Harsh Yadav/Downloads/forestfires.csv", header=TRUE, stringsAsFactors=FALSE)
+fire <- read.csv("forestfires.csv", header=TRUE, stringsAsFactors=FALSE)
 str(fire)
 sum(is.na(fire))
 
