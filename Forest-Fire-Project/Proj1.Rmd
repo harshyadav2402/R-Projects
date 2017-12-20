@@ -1,0 +1,439 @@
+---
+title: "Business Analytics Project- Forest Fire Data"
+author: "Harsh Yadav (hy1217), Nitish Dabas(nd1292), Kush Shah ()"
+date: "11/22/2017"
+output: rmarkdown::github_document
+---
+
+
+```{r setup, include=FALSE}
+library(lattice)
+library(randomForest)
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+fire <- read.csv("forestfires.csv", header=TRUE, stringsAsFactors=FALSE)
+str(fire)
+```
+
+##The data has been stored in a dataframe named fire and the str function shows that there are 517 observations and 13 variables in our dataset. The description of each column is as follows:
+
+   1. X - x-axis spatial coordinate within the Montesinho park map: 1 to 9
+   2. Y - y-axis spatial coordinate within the Montesinho park map: 2 to 9
+   3. month - month of the year: "jan" to "dec" 
+   4. day - day of the week: "mon" to "sun"
+   5. FFMC - FFMC index from the FWI system: 18.7 to 96.20
+   6. DMC - DMC index from the FWI system: 1.1 to 291.3 
+   7. DC - DC index from the FWI system: 7.9 to 860.6 
+   8. ISI - ISI index from the FWI system: 0.0 to 56.10
+   9. temp - temperature in Celsius degrees: 2.2 to 33.30
+   10. RH - relative humidity in %: 15.0 to 100
+   11. wind - wind speed in km/h: 0.40 to 9.40 
+   12. rain - outside rain in mm/m2 : 0.0 to 6.4 
+   13. area - the burned area of the forest (in hectares): 0.00 to 1090.84 
+
+```{r}
+sum(is.na(fire))
+```
+
+##There are no NaN or NULL values in our dataset.
+
+```{r}
+summary(fire)
+```
+
+##The above function represents the summary of each of the feature of our dataset representing their min, max, quartile values.
+
+```{r}
+library(GGally)
+ggcorr(fire[,3:13],label_size = 4, size = 3, palette = "RdBu", label = TRUE)
+```
+
+##The correlation represented above shows the relationship between different feartures of our dataset. We can see that DC and DMC values are most strongly positively correlated to each other and temperature is strongly negatively correlated to RH value.
+
+
+##Fine Fuel Moisture Code - FFMC
+##This is a numerical rating of the moisture content of surface litter and other cured fine fuels. It shows the relative ease of ignition and flammability of fine fuels. The moisture content of fine fuels is very sensitive to the weather. Even a day of rain, or of fine and windy weather, will significantly affect the FFMC rating. The system uses a time lag of two-thirds of a day to accurately measure the moisture content in fine fuels. The FFMC rating is on a scale of 0 to 99. Any figure above 70 is high, and above 90 is extreme.
+
+```{r}
+range(fire$FFMC)
+```
+
+##Here we can see that our dataset has values of FFMC between 18.7 to 96.2 which is between the range of 0 to 99 as defined above for the FFMC index.
+
+```{r}
+
+library(ggplot2)
+ggplot(fire, aes(x=fire$FFMC)) +
+    geom_histogram(binwidth=1, colour="navy", fill="navy")  +
+    labs(x="FFMC",y="Count")
+median(fire$FFMC)
+boxplot(fire$FFMC,main="Box Plot for FFMC", ylim=c(50,100), cex=0.75)
+
+```
+
+##The first table shows that the FFMC index has values between 
+
+##This box plot shows that most of the data in our dataset involves the FFMC index that is above 70 (fire usually begins from this point) which comes in the high category and thus is quite dangerous for the fire to occur. The median value is 91.6. Also, we can see that a lot of values are near 90 and above(extreme), which indicates that there are high chances of forest fire to occur.
+
+##FFMC is affected by temperature, rain, wind and relative humidity since it represents the top-most layer of fuels.
+
+```{r}
+
+ggplot(fire, aes( x = wind , y = temp, fill = FFMC ) ) +  # print bar chart
+  geom_bar( stat = 'identity', position = 'dodge' )
+
+fire$FFMC_CAT <- cut(fire$FFMC, 
+                       breaks = c(-Inf, 30, 60, 90, Inf), 
+                       labels = c("Low", "Medium", "High", "Extreme"), 
+                       right = FALSE)
+
+mycolors = c('green','yellow','orange','red')
+plot(fire$wind, fire$temp, pch = 16, col = mycolors[fire$FFMC_CAT],
+     main="FFMC variation with Temp and Wind",xlab="Temperature", ylab="Wind")
+legend("topright", legend=levels(fire$FFMC_CAT), pch=16, cex=0.6, col=unique(mycolors))
+```
+
+##This plot shows that for lower values of wind and higher values of temperature the FFMC values are very high and thus there is very high chances of fire when the wind speed is low and the temperature is high.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##Duff Moisture Code - DMC
+
+##DMC is a numerical rating of the average moisture content of loosely compacted organic layers of moderate depth. The code indicates the depth that fire will burn in moderate duff layers and medium size woody material. Duff layers take longer than surface fuels to dry out but weather conditions over the past couple of weeks will significantly affect the DMC. The system applies a time lag of 12 days to calculate the DMC. A DMC rating of more than 30 is dry, and above 40 indicates that intensive burning will occur in the duff and medium fuels. Burning off operations should not be carried out when the DMC rating is above 40.
+
+```{r}
+median(fire$DMC)
+library(ggplot2)
+ggplot(fire, aes(x=fire$DMC)) +
+    geom_histogram(binwidth=5, colour="navy", fill="navy")  +
+    labs(x="DMC",y="Count")
+boxplot(fire$DMC, main="Box Plot for DMC")
+
+
+fire$DMC_CAT <- cut(fire$DMC, 
+                       breaks = c(-Inf, 50, 100, 150, Inf), 
+                       labels = c("Low", "Medium", "High", "Extreme"), 
+                       right = FALSE)
+
+mycolors = c('green','yellow','orange','red')
+plot(fire$temp, fire$RH, pch = 16, col = mycolors[fire$DMC_CAT],
+     main="DMC variation with Temp and RH",xlab="Temperature", ylab="Relative Humidity")
+legend("topright", legend=levels(fire$DMC_CAT), pch=16, cex=0.75, col=unique(mycolors))
+
+```
+
+##The Boxplot for DMC index indicates that most of the values lie between 60 to 150 which are above 40 and thus, we can infer that there is very high chance of fire occuring due to such high values of DMC as described in the description above.
+
+## DMC is effected by rain, temperature and relative humidity since it represents the layer which is 2-4 inches deep where wind will have no effect.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##Drought Code - DC
+
+##The DC is a numerical rating of the moisture content of deep, compact, organic layers. It is a useful indicator of seasonal drought and shows the likelihood of fire involving the deep duff layers and large logs. A long period of dry weather (the system uses 52 days) is needed to dry out these fuels and affect the Drought Code. A DC rating of 200 is high, and 300 or more is extreme indicating that fire will involve deep sub-surface and heavy fuels. Burning off should not be permitted when the DC rating is above 300.
+
+```{r}
+median(fire$DC)
+library(ggplot2)
+boxplot(fire$DC, main="Box Plot for DC")
+
+ggplot(fire, aes(x=fire$DC)) +
+    geom_histogram(binwidth=10, colour="navy", fill="navy")  +
+    labs(x="DC",y="Count")
+```
+
+##The above boxplot for the DC index shows that most of the values lie between 400 to 700 which are extreme conditions for fire to occur and in these situations burning off is not allowed as they may facilitate forest fires. Further, there exists outliers which are shown in the boxplot with a circular shape.
+
+## DC is affected only by rain and temperature because of its depth. Although we need a 24-hr rainfall of greater than 0.11 inches to consider it for DC calculations.
+
+##From the histogram we can view that most of the values of DC index are very high and thus there are extreme chnces for the fire to occur.
+
+```{r}
+fire$DC_CAT <- cut(fire$DC, 
+                       breaks = c(-Inf, 300, 500, 800, Inf), 
+                       labels = c("Low", "Medium", "High", "Extreme"), 
+                       right = FALSE)
+
+mycolors = c('green','yellow','orange','red')
+plot(fire$temp, fire$rain, pch = 16, col = mycolors[fire$DC_CAT],
+     main="DC variation with Temp and Rain",xlab="Temperature", ylab="Rain")
+legend("topright", legend=levels(fire$DC_CAT), pch=16, cex=0.75, col=unique(mycolors))
+```
+
+
+
+```{r}
+plot(DC ~ DMC, fire, col=fire$DMC)
+```
+
+##From the above scatter plot we can see that for high values of DC index the value of the DMC index is also high. As both DC and DMC index depend on moisture content of organic layers, therefore this kind of relationship exists betwen them where if one increases then other also increases. For higher values of DMC and DC index there are more extreme chances of fire to occur.
+
+
+
+
+
+
+
+
+
+
+
+
+##Initial Spread Index - ISI
+
+##This indicates the rate fire will spread in its early stages. It is calculated from the FFMC rating and the wind factor. The open-ended ISI scale starts at zero and a rating of 10 indicates high rate of spread shortly after ignition. A rating of 16 or more indicates extremely rapid rate of spread.
+
+```{r}
+mean(fire$ISI)
+boxplot(fire$ISI, main="Box plot for ISI", ylim=c(0,30))
+
+
+```
+
+##From the boxplot of the ISI index we can see that most of the values of this index are from 5 to 10, where 10 indicates high rate of spread shortly after ignition. Also, there are values above 10, which indicate severe spread of fire.
+
+```{r}
+#cor(fire$ISI,fire$wind)
+#cor(fire$ISI, fire$FFMC)
+## Calculated the correlation to get an idea about how my graph will show up.
+library(dplyr)
+library(tidyr)
+
+fire$ISI_Cat <- cut(fire$ISI, 
+                       breaks = c(-Inf, 3, 9, 16, Inf), 
+                       labels = c("Low", "Medium", "High", "Extreme"), 
+                       right = FALSE)
+
+mycolors = c('green','yellow','orange','red')
+plot(fire$FFMC, fire$wind, pch = 16, col = mycolors[fire$ISI_Cat],
+     main="ISI variation with FFMC and Wind",xlab="FFMC", ylab="Wind")
+legend("topleft", legend=levels(fire$ISI_Cat), pch=16,cex=0.75, col=unique(mycolors))
+```
+
+##From the above graph we infer that for higher values of FFMC index the values of ISI increase. Thus, for extreme values of FFMC we obtain extreme values of ISI index which show that there are high chances of fire and also there are high chances that the fire will spread rapidly. 
+
+## Also, it can be seen in the graph that for the given dataset, wind is not contributing much to ISI index since we can see that even at lower values of wind index we have higher values of ISI, it can be corroborated by correlation calculation between these factors.
+
+
+
+
+
+
+
+
+
+
+
+##Relative humidity - RH
+
+##Relative humidity (RH) is the ratio of the partial pressure of water vapor to the equilibrium vapor pressure of water at a given temperature. Relative humidity depends on temperature and the pressure of the system of interest. It requires less water vapor to attain high relative humidity at low temperatures; more water vapor is required to attain high relative humidity in warm or hot air.
+
+```{r}
+boxplot(fire$RH)
+```
+
+##This plot represents that most of the Relative Humidity values lie between 30 to 55, which are ideal RH values. The values near 100 represent very high humidity level.
+
+```{r}
+fire$RH_Cat <- cut(fire$RH, 
+                       breaks = c(-Inf, 25, 50, 75, Inf), 
+                       labels = c("Low", "Medium", "High", "Extreme"), 
+                       right = FALSE)
+
+mycolors = c('red','yellow','green','blue')
+plot(fire$temp, fire$rain, pch = 16, col = mycolors[fire$RH_Cat])
+legend("topleft", legend=levels(fire$RH_Cat), pch=16, col=unique(mycolors))
+```
+
+##As most of the values for the Rain column in our dataset are 0, so the above graph does not represent ideal visual of variance of RH with rain and Temperature. But, we can see that for high values of temperature the humidity decreases and for less values of temperature the humidity level is quite high.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+hist(fire$area, main="Histogram for Area")
+rug(fire$area)
+
+ggplot(fire, aes(x=fire$area)) +
+    geom_histogram(binwidth=20, colour="navy", fill="navy")  +
+    labs(x="Area",y="Count")
+```
+##The above histogram for the area that was affected by fire represents that most of the fire that occured was very less and did not spread much. But, in some cases we can see that the fire occured covering major areas.
+
+```{r}
+
+fire_new <- fire[fire$area>0,]
+#fire_new <- head(fire_new,10)
+fire_new$area_Cat <- cut(fire_new$area, 
+                       breaks = c(0, 10, 30, 70, Inf), 
+                       labels = c("Low", "Medium", "High", "Extreme"), 
+                       right = FALSE)
+
+ggplot(fire_new, aes(x=wind, y=temp, fill=area_Cat))+
+  geom_bar(position="dodge", stat="identity")
+```
+```{r}
+
+
+```
+
+##For this plot first a new dataset has been created ignoring all the 0 values in the area column. Further the variable are has been classified as low, medium, high and extreme based on the area in which the fire occured. Therefore, form the visualization we can see that extreme fire occur for moderate values of wind, but high values of temperature. So, it can be infered that temperature is a major factor for occurance of fire.
+
+```{r}
+ggplot(fire_new, aes(x=rain, y=temp, fill=area_Cat))+
+  geom_bar(position="dodge", stat="identity")
+```
+
+##From this plot we can infer that most of the forest fore occur when there is no rain, thus rin also, plays an important factor in the occurance of forest fires.
+
+```{r}
+ggplot(fire_new, aes(x=FFMC, y=temp, fill=area_Cat))+
+  geom_bar(position="dodge", stat="identity")
+```
+
+##This plot shows that most of the forest fire occur when the value of FFMC and temperature are both high. As we know that FFMC is a numerical rating of the moisture content of surface litter and other cured fine fuels. It shows the relative ease of ignition and flammability of fine fuels for a higher value.
+
+```{r}
+ggplot(fire_new, aes(x=month, y=temp, fill=area_Cat))+
+  geom_bar(position="dodge", stat="identity")
+```
+
+#This graph shows that most of the extreme forest fire occur during occur during the month of June, July, August and September when the temperature is high, so it facilitates occurance of fire.
+
+#Predictive Analysis
+
+##Random Forest Algorithm
+
+```{r}
+fire_rf <- read.csv("forestfires.csv", header=TRUE, stringsAsFactors=FALSE)
+```
+
+##The data has been loaded into a dataframe named fire_rf for our predictive analysis using the random forest algorithm.
+
+```{r}
+library(randomForest)
+
+fire_rf$day <- factor(fire_rf$day)
+fire_rf$month <- factor(fire_rf$month)
+
+set.seed(415)
+
+data <- sample(2,nrow(fire_rf),replace=TRUE,prob=c(0.7,0.3))
+trainData <- fire_rf[data==1,]
+testData <- fire_rf[data==2,]
+```
+
+#The random forest library had been loaded and the set.seed randomiser has been set to 415. Then the source dataframe fire_rf has been divided into 2 dataframes namely trainData and testData in 0.7:0.3 ratio for our predictive analysis. The day and month columns have been converted as factors as they contain string values, so to perform random forest analysis on our data, we have to convert these string values to factors.
+
+```{r}
+rf_fit <- randomForest(area ~., data=trainData, importance=TRUE, ntree=200)
+```
+
+##Random forest modelling has been performed on our training data using 200 trees and the model has been stored in rf_fit.
+
+```{r}
+plot(rf_fit)
+```
+
+```{r}
+importance(rf_fit)
+```
+
+```{r}
+varImpPlot(rf_fit)
+```
+
+```{r}
+Pred<-predict(rf_fit,testData)
+#a <- table(Pred, testData$area)
+
+```
+
+
+```{r}
+library(e1071)
+library(caret)
+#a <- table(Pred, testData$area)
+#Act <- as.data.frame(testData$area)
+#Pred1 <- as.data.frame(Pred)
+#a1 <- table(str(Pred), str(testData$area))
+#a1
+#confusionMatrix(str(Pred), str(testData$area))
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
