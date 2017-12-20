@@ -1,0 +1,163 @@
+---
+title: "Homework 1 (BA)"
+output: github_document
+author: "Nitish Dabas (nd1292), Harsh Yadav (hy1217), Kush Shah (ks4437)"
+date: "September 21, 2017"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+                        
+## 1. Load the given data “contribution.csv”
+```{r}
+df <- read.csv("C:/Users/Harsh Yadav/Desktop/contribution.csv", header=TRUE,stringsAsFactors=FALSE)
+```
+
+## 2.How many observations and variables are there in this dataset?
+```{r}
+  dim(df)
+```
+## Ans. 1230 Observations of 11 Variables.
+
+## 3.Are there any missing values and anomaly values in each of the variable in the dataset?
+```{r}
+colSums(is.na(df))
+```
+## Ans. No
+
+## 4.What year(s) does the dataset cover?
+```{r}
+unique(df$Class.Year)
+```
+## Ans. 1957 1967 1977 1987 1997
+\newpage
+## 5.Which year has the most alumni making contribution?
+```{r}
+df.y0 <- subset(df, FY00Giving >0)
+nrow(df.y0) 
+df.y1 <- subset(df, FY01Giving >0)
+nrow(df.y1)
+df.y2 <- subset(df, FY02Giving >0)
+nrow(df.y2)
+df.y3 <- subset(df, FY03Giving >0)
+nrow(df.y3)
+df.y4 <- subset(df, FY04Giving >0)
+nrow(df.y4)
+```
+## Ans. Year FY01Giving (Calculated the number of almunis contributing each year by excluding '0' contributions and then selecting the maximum number of alumnis)
+
+## 6.Which year has the largest average contribution?
+```{r}
+df.m_y0 <- mean(df$FY00Giving)
+df.m_y0        #Calculated the mean contribution of all years to select the largest value
+df.m_y1 <- mean(df$FY01Giving)
+df.m_y1
+df.m_y2 <- mean(df$FY02Giving)
+df.m_y2
+df.m_y3 <- mean(df$FY03Giving)
+df.m_y3
+df.m_y4 <- mean(df$FY04Giving)
+df.m_y4
+```
+## Ans. FY01Givings
+## 7.Which year has the largest 90th percentile contribution?
+```{r}
+df.p_y0 <- quantile(df$FY00Giving, probs=0.9)
+df.p_y0              #Calculated 90th percentile of each year to select the largest value
+df.p_y1 <- quantile(df$FY01Giving, probs=0.9)
+df.p_y1
+df.p_y2 <- quantile(df$FY02Giving, probs=0.9)
+df.p_y2
+df.p_y3 <- quantile(df$FY03Giving, probs=0.9)
+df.p_y3
+df.p_y4 <- quantile(df$FY04Giving, probs=0.9)
+df.p_y4
+```
+## Ans. FY01Giving
+
+## 8.What are the standard deviation of the contribution amount in each of this years?
+```{r}
+df.sd_y0 <- sd(df$FY00Giving) 
+df.sd_y0                    #Calculated and printed the std of eaach other
+df.sd_y1 <- sd(df$FY01Giving)
+df.sd_y1
+df.sd_y2 <- sd(df$FY02Giving)
+df.sd_y2
+df.sd_y3 <- sd(df$FY03Giving)
+df.sd_y3
+df.sd_y4 <- sd(df$FY04Giving)
+df.sd_y4
+```
+## Ans. FY00Giving - 1170.638
+        FY01Giving - 4663.706
+        FY02Giving - 638.1267
+        FY03Giving - 2062.392
+        FY04Giving - 792.0376
+
+## 9.Which degree contributed the most in the latest year in the data?
+```{r}
+degreelist<-c(unique(df$Next.Degree)) #Creates a list of all Degrees
+j=0;                                  #Initialize a variable to 0
+sum_total <- c()                      # Initialize an empty list  
+for (degreename in degreelist) #Loop creates a list of total contibution of all degrees
+{                               
+  j=j+1;
+  sum_total[j] <- (sum(subset(df$FY04Giving, df$Next.Degree==degreename)))
+}
+degreedata <- data.frame(degreelist, sum_total) #Created a new data frame
+print (subset(degreedata$degreelist , sum_total==max(degreedata$sum_total)))
+#Prints the degree with most contribution 
+```
+## Ans. "JD" (This result can also be deduced by printing out the total contribution of each degree along with its name and then manually searching for most contribution)
+\newpage
+## 10.Which major contributed the most in the latest year in the data?
+```{r}
+majorlist<-c(unique(df$Major)) #Creates a list of all Majors 
+i=0;                           #Initialize a variable to 0
+sum_total2 <- c()               # Initialize an empty list  
+for (majorname in majorlist)   #Loop creates a list of total contibution of all majors
+{
+  i=i+1;
+  sum_total2[i] <- (sum(subset(df$FY04Giving, df$Major==majorname)))
+}
+majordata <- data.frame(majorlist, sum_total2) #Created a new data frames 
+#print(majordata)
+newdata <- majordata[order(-sum_total2),] 
+#newdata
+newdata1<-head(newdata,10)
+newdata1
+print (subset(majordata$majorlist , sum_total2==max(majordata$sum_total2))) 
+#Prints the major with most contribution 
+
+library(ggplot2)
+
+df.new<-subset(df,df$Major=="Biology"| df$Major=="History" |df$Major=="Political Science" |df$Major=="Speech (Drama, etc.)" |df$Major=="Psychology")
+#df.new
+ggplot(df.new, aes(x=FY04Giving, fill=Major)) +
+    geom_histogram(alpha=0.5, position="identity") +
+    ggtitle("Contribution in 2004")
+    
+```
+## Ans. "History" (This result can also be deduced by printing out the total contribution of each major along with its name and then manually searching for highest contribution)
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
