@@ -1,0 +1,238 @@
+---
+title: "Business Analytics: HW 3"
+author: "Harsh Yadav (hy1217), Nitish Dabas(nd1292), Kush Shah (ks4437)"
+date: "December 14, 2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Description:
+
+The objective of this homework is to predict which valuable employees of a company will leave next. The variable of interest is *left*. The description of the other variables are listed below.
+
+
+# Data
+
+satisfaction_level: Level of satisfaction (0-1)
+
+last_evaluation: Time since last performance evaluation (in Years)
+
+number_project: Number of projects completed while at work
+
+average_montly_hours: Average monthly hours at workplace
+
+time_spend_company: Number of years spent in the company
+
+Work_accident: Whether the employee had a workplace accident
+
+left: Whether the employee left the workplace or not (1 or 0) Factor
+
+promotion_last_5years: Whether the employee was promoted in the last five years
+
+sales: Department in which they work for
+
+salary: Relative level of salary (high)
+
+```{r}
+data <- read.csv("C:/Users/Harsh Yadav/Desktop/hw3_data.csv")
+str(data)
+```
+
+##Here, we can see that there are 10000 observations in our dataset with 11 variables. We have to take predict $left(target variable) based on all the other predictors. 
+
+```{r}
+sum(is.na(data))
+```
+
+## This observation shows that there are no NA values in our dataset therefore there is no need to change the dataset.
+
+```{r}
+summary(data)
+```
+
+##The above observation represents the summary of each of the feature of our dataset representing their min, max, quartile values.
+
+```{r}
+library(GGally)
+ggcorr(data, label_size = 4, size = 3,hjust = 0.80, label = TRUE)
+```
+
+##The correlation graph given above shows correlations between all the variables. We can see that there are positive as well as negative correlations between the variables but none of the varibales are highly correlated with each other. This matrix is useful for our EDA analysis since we can choose the parameters to plot the graph effectively. 
+
+
+```{r}
+
+library(ggplot2)
+#mean(data$average_montly_hours)
+#range(data$average_montly_hours)
+boxplot(data$average_montly_hours,main="Box Plot for Avg Monthly Hours")
+```
+
+## It can be inferred from the box plot that an employee works for Avg Monthly hours in the range of 100-310( approx.) and on an average , the avg monthly hours for each employee in this company is around 200. It can also be noted that there are no outliers in the observations for this parameter. We have also calculated the range and mean by using the functions to check our observations based on box plot.
+
+
+```{r}
+
+library(ggplot2)
+#mean(data$satisfaction_level)
+#range(data$satisfaction_level)
+boxplot(data$satisfaction_level,main="Box Plot for Satisfaction Level")
+```
+
+## Based on the above box plot, the least satisfaction level recorded by an employee is close to 0.1(approx.) and the avg satisfaction levels for the employees is 0.61. The maximum satisfaction level can be 1. Also, 50% of the employees have satisfaction level between 0.4 to 0.8 (25th to 75th percentile).
+
+```{r}
+
+library(ggplot2)
+#mean(data$satisfaction_level)
+ggplot(data, aes(x=satisfaction_level)) +
+    geom_histogram(colour="navy", fill="navy") +
+    ggtitle("Satisfaction Level") +   
+    labs(x="Satisfaction Levels",y="Count") +
+    geom_vline(aes(xintercept=mean(satisfaction_level, na.rm=T)), 
+               color="green", linetype="solid", size=1)
+```
+
+##The above histogram for satisfaction level validates the results we derived by the box plot discussed above.
+
+```{r}
+ggplot(data,aes(x=salary, fill=salary)) + geom_bar() + labs(x="Salary",y="Count")
+
+```
+
+## This bar plots shows the number of employees in each salary group. We can see that most number of employees are in the low  salary slab whereas there are least number of employees in the high salary slab. This can be related to a common scenario since there are less number of people for eg. managers in a company who have higher salaries.
+
+```{r}
+Number_of_Projects<-factor(data$number_project)
+ggplot(data,aes(x=Number_of_Projects, fill=Number_of_Projects)) + geom_bar()+
+  labs(x="No. of Projects",y="Count")
+```
+
+## It can be inferred from the above bar plot that most number of people are working on 4 projects at a time whereas there are only a few people who are working on 6 or 7 projects.
+
+
+```{r}
+left1<-factor(data$left)
+mycolors = c('green','red')
+plot(data$time_spend_company, data$satisfaction_level, pch = 16, 
+     col = alpha(mycolors[left1], 0.3),
+     main="Employees who Left based on Satisfaction and Years of Work",
+     xlab="Time Spent in Company", ylab="Satisfaction Level",
+     cex.main=0.75,
+     cex.lab=0.75)
+legend("topright", legend=levels(left1), pch=16, cex=0.8, col=unique(mycolors))
+```
+
+## The above scatter plot gives a few important observations as mentioned below:
+
+## 1. Employees who have worked for more than 6 years are less likely to leave the company (0 in this case) even if there satisfaction level is low , since there are no red points in the plot after 6 years.
+## 2. Employees who have worked for 2 years are less likely to leave the company irrespective of their satisfaction level since they are at the start of their careers. 
+## 3. Employees who have worked for 5,6 years are most likely to leave the company even if they are highly satisfied with what they do. This decision can be based on the future aspirations of an individual since 4-5 years of experience gives you a good market value to switch companies.
+
+```{r}
+
+library(forcats)
+p<-ggplot(data,aes(x=fct_rev(fct_infreq(sales)), fill=salary)) +
+  geom_bar()+
+  labs(y="Count",x="Department")
+p + coord_flip()
+```
+
+##The above bar plot makes a few interesting observations:
+##1. The most number of people in any department are in the low salary slab whereas least number of people are on high salary payscale. We can relate this to the bar plot we saw earlier.
+##2. Most number of employees in the company are in the sales department followed by technical department.
+##3. The management department has least number of people since we only need a single manager to manage number of employees.
+
+
+#Predictive Analysis
+
+##Random Forest Algorithm
+
+```{r}
+data1 <- read.csv("C:/Users/Harsh Yadav/Desktop/hw3_data.csv")
+```
+
+#Here we have again loaded our dataset into variable named data1 for our predictive modelling using the Random forest algorithm.
+
+```{r}
+require(randomForest)
+data1$left=as.factor(data1$left)
+df <- subset(data1, select = -c(left))
+result <- rfcv(df, data1$left, cv.fold=10, scale = "log", step=0.9)
+```
+
+#After importing the randomForest library, we have created another dataframe named df that has all the features from our origional dataset named data1. In this new dataframe df we have selected all the features except our target variable 'left'. Then we have performed 10 fold cross validation on the dataframe df mentioning the target variable as 'left'.
+
+```{r}
+with(result, plot(n.var, error.cv, log="x", type="o", lwd=2))
+result$error.cv
+```
+
+#Here we can observe that the cross validation error is least when we consider just one variable, but that is not good for training our model, as in this case we are just making prediction based on one variable and the other variables are ignored, which may also be important. So, we definitely need to consider other variables for our analysis. Further, we can see that for all the cases, that we have considered, the cross validation error is very less. So, if we consider 6 variables then we have the same cross validation as for considering 9 variables which is around 0.0024. So, we can perform our analysis considering 6 or 9 variables. We can see which features to select by plotting the feature importance below.
+
+
+```{r}
+set.seed(415)
+
+data2 <- sample(2,nrow(data1),replace=TRUE,prob=c(0.7,0.3))
+trainData <- data1[data2==1,]
+testData <- data1[data2==2,]
+```
+
+##Here, we have set the seed to 415 and divided our dataframe into training and training data in the ratio of 70:30 respectively.
+
+```{r}
+library(randomForest)
+fit <- randomForest(left ~X+satisfaction_level+last_evaluation+
+                      number_project+average_montly_hours+time_spend_company+
+                      Work_accident+promotion_last_5years+sales+salary, 
+                      data=data1, ntree=100)
+```
+
+#Here, we trained our random forest model using all the predictor variables present in our dataset. We have set the target variable as left and have taken the complete data for our analysis. We have set the number of trees to 100 for our model.
+
+```{r}
+varImpPlot(fit)
+```
+
+#In the feature importance plot we can see that in determining the Gini value, variables like promotion_last_5years, Work_accident, salary and sales are not that important as their values are almost near 0 and they have almost negligible contribution in making predictions.
+
+##So, if we ignore these 4 variables and train our model on just 6 variables then we will get almost same predicted results as for the case when we consider all 10 variables. So, now we will just consider 6 variables for our analysis using random forest algorithm.
+
+```{r}
+library(randomForest)
+fit1 <- randomForest(left ~X+satisfaction_level+last_evaluation+
+                       number_project+average_montly_hours+
+                       time_spend_company, data=trainData, ntree=100)
+```
+
+##Here,we have trained our random forest predictive model using the 6 most important features, that we discussed above and have created a model named fit1. We have trained the model using the trainData model.
+
+```{r}
+Pred<-predict(fit1,newdata=testData)
+conf <- table(Pred, testData$left)
+```
+
+##Here we have calculated the predicted results of the 'left' target variable and the results re stored in Pred. then we have created a table named conf, which we will use for evaluating the confusion matrix.
+
+```{r}
+library(e1071)
+library(caret)
+
+confusionMatrix(conf)
+```
+
+##We have received an accuracy of 99.59 percent, so we can infer that the model has been trained very accurately and will be nicely able to predict the values of our target variable named 'left'. We can see from the confusion matrix that only 10 values of our target have been wrongly classified.
+
+##We have received the sensitivity of 1, specificity of 0.98 which show that we have a lot of true positive results from our modelling and our model is very accurate.
+
+##We can observe that maximum results belong to the 1st class, that predicted almost negligible fire. Further, the sensitivity, specificity and other parameters for all the classes have been shown. We have taken 95% confidence interval for our analysis and most of our results are within it.
+
+##The no information error rate is the error rate when the input and output are independent. So, for our case the value is very low, which indicates good modelling of our data.
+
+##The p-value tells us the probability of null hypothesis. A small p-value indicates strong evidence against the null hypothesis, so we reject the null hypothesis.
+
+##The Kappa value is a metric that compares an Observed Accuracy with an Expected Accuracy (random chance). The kappa statistic is used not only to evaluate a single classifier, but also to evaluate classifiers amongst themselves. In essence, the kappa statistic is a measure of how closely the instances classified by the machine learning classifier matched the data labeled as ground truth, controlling for the accuracy of a random classifier as measured by the expected accuracy.
+
